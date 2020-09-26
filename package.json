@@ -1,0 +1,17 @@
+{
+  "private": true,
+  "workspaces": [
+    "css",
+    "cpp",
+    "java",
+    "rust",
+    "json",
+    "generator",
+    "html",
+    "javascript",
+    "python",
+    "lezer",
+    "tree",
+    "xml"
+  ]
+}
