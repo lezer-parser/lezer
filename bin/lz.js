@@ -350,6 +350,7 @@ function releaseAll(...args) {
   let versions = packages.map(version)
   let maxVersion = Math.max(...versions.map(v => +v.split(".")[1]))
   let newVersion = `0.${maxVersion + 1}.0`
+  bumpDeps(newVersion)
   for (let i = 0; i < packages.length; i++) {
     let pkg = packages[i]
     let changes = changelog(pkg, versions[i], messages[pkg.name] || (pkg.options.grammar ? messages.grammar : null))
