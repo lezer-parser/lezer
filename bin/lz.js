@@ -104,6 +104,8 @@ const packages = [
   new Pkg("java", {grammar: true}),
   new Pkg("python", {grammar: true}),
   new Pkg("json", {grammar: true}),
+  new Pkg("rust", {grammar: true}),
+  new Pkg("markdown"),
 ]
 const packageNames = Object.create(null)
 for (let pkg of packages) packageNames[pkg.name] = pkg
@@ -323,7 +325,7 @@ function doRelease(pkg, changes, newVersion) {
 
 function release(pkgName, ...args) {
   let pkg = packageNames[pkgName]
-  if (!pkg) error(`No package ${arg} known`)
+  if (!pkg) error(`No package ${pkgName} known`)
   let newVersion = null, message = ""
   for (let i = 0; i < args.length; i++) {
     if (args[i] == "--version") newVersion = args[++i]
@@ -368,7 +370,7 @@ function runCmd(...args) {
   for (let pkg of packages) {
     try { run(args[0], args.slice(1), pkg.dir, process.stdout) }
     catch(e) {
-      console.error(e)
+      console.error(e + "")
       if (!cont) process.exit(1)
     }
   }

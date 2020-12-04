@@ -12,6 +12,7 @@
     "python",
     "lezer",
     "tree",
-    "xml"
+    "xml",
+    "markdown"
   ]
 }
