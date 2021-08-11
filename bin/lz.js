@@ -93,8 +93,8 @@ function tsPlugin(options) {
 }
 
 const packages = [
-  new Pkg("tree", {entry: "tree"}),
-  new Pkg("lezer"),
+  new Pkg("common"),
+  new Pkg("lr"),
   new Pkg("generator", {node: true}),
   new Pkg("javascript", {grammar: true}),
   new Pkg("css", {grammar: true}),
@@ -105,7 +105,7 @@ const packages = [
   new Pkg("python", {grammar: true}),
   new Pkg("json", {grammar: true}),
   new Pkg("rust", {grammar: true}),
-  new Pkg("lezer-grammar", {grammar: true}),
+  new Pkg("lezer", {grammar: true}),
   new Pkg("markdown"),
 ]
 const packageNames = Object.create(null)
@@ -116,13 +116,14 @@ function start() {
   let args = process.argv.slice(3)
   let cmdFn = {
     packages: listPackages,
-    build: build,
-    watch: watch,
-    release: release,
+    build,
+    watch,
+    release,
     "release-all": releaseAll,
     "bump-deps": bumpDeps,
     run: runCmd,
-    "--help": () => help(0)
+    "--help": () => help(0),
+    notes
   }[command]
   if (!cmdFn || cmdFn.length > args.length) help(1)
   new Promise(r => r(cmdFn.apply(null, args))).catch(e => error(e))
@@ -133,9 +134,10 @@ function help(status) {
   lz packages               Emit a list of all pkg names
   lz build [--force]        Build the bundle files
   lz watch                  Start a watching build
-  lz release name           Tag a release
+  lz release <name>         Tag a release
   lz release-all            Tag a new release for all packages
   lz run [--cont] <cmd>     Run the given command in all packages
+  lz notes <name>           Emit pending release notes
   lz --help`)
   process.exit(status)
 }
@@ -272,7 +274,7 @@ async function watch() {
 }
 
 function changelog(pkg, since, extra) {
-  let commits = run("git", ["log", "--format=%B", "--reverse", since + "..master"], pkg.dir)
+  let commits = run("git", ["log", "--format=%B", "--reverse", since + "..main"], pkg.dir)
   if (extra) commits = "\n\n" + extra + "\n\n" + commits
   let result = {fix: [], feature: [], breaking: []}
   let re = /\n\r?\n(BREAKING|FIX|FEATURE):\s*([^]*?)(?=\r?\n\r?\n|\r?\n?$)/g, match
@@ -362,7 +364,7 @@ function releaseAll(...args) {
 function bumpDeps(version) {
   for (let pkg of packages) {
     let file = path.join(pkg.dir, "package.json")
-    fs.writeFileSync(file, fs.readFileSync(file, "utf8").replace(/"lezer(-\w+)?":\s*"\^?\d+\.\d+\.\d+"/g, `"lezer$1": "^${version}"`))
+    fs.writeFileSync(file, fs.readFileSync(file, "utf8").replace(/"@lezer\/([\w-]+)":\s*"\^?\d+\.\d+\.\d+"/g, `"@lezer\/$1": "^${version}"`))
   }
 }
 
@@ -376,6 +378,13 @@ function runCmd(...args) {
       if (!cont) process.exit(1)
     }
   }
+}
+
+function notes(name) {
+  let pkg = packageNames[name]
+  if (!pkg) error(`No package ${name} known`)
+  let notes = releaseNotes(changelog(pkg, version(pkg)), "XXX")
+  console.log(notes.head + notes.body)
 }
 
 start()
