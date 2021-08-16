@@ -285,8 +285,8 @@ function changelog(pkg, since, extra) {
 function bumpVersion(version, changes) {
   let [major, minor, patch] = version.split(".")
   if (changes.breaking.length && major != "0") return `${Number(major) + 1}.0.0`
-  if (changes.feature.length || changes.breaking.length) return `${major}.${Number(minor) + 1}.0`
-  if (changes.fix.length) return `${major}.${minor}.${Number(patch) + 1}`
+  if (changes.feature.length && major != "0" || changes.breaking.length) return `${major}.${Number(minor) + 1}.0`
+  if (changes.fix.length || changes.feature.length) return `${major}.${minor}.${Number(patch) + 1}`
   throw new Error("No new release notes!")
 }
 
