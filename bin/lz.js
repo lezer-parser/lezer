@@ -106,6 +106,7 @@ const packages = [
   new Pkg("json", {grammar: true}),
   new Pkg("rust", {grammar: true}),
   new Pkg("lezer", {grammar: true}),
+  new Pkg("php", {grammar: true}),
   new Pkg("markdown"),
 ]
 const packageNames = Object.create(null)
