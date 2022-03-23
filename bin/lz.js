@@ -59,17 +59,19 @@ class Pkg {
       input: this.entrySource,
       external(id) { return id != "tslib" && !/^\.?\//.test(id) },
       output: [...options.esm ? [{
-        format: "esm",
+        format: "es",
         file: this.esmFile,
-        sourcemap: true,
         externalLiveBindings: false
       }] : [], {
         format: "cjs",
         file: this.cjsFile,
-        sourcemap: true,
         externalLiveBindings: false
       }],
-      plugins: [tsPlugin({lib: this.options.node ? ["es6", "node"] : ["es6", "scripthost"]})]
+      plugins: [tsPlugin(this.dir, {
+        lib: this.options.node ? ["es6", "node"] : ["es6", "scripthost"],
+        target: "es6",
+        declaration: true
+      })],
     })
   }
 }
@@ -77,13 +79,12 @@ class Pkg {
 const baseCompilerOptions = {
   noImplicitReturns: false,
   noUnusedLocals: false,
-  sourceMap: true
 }
 
-function tsPlugin(options) {
+function tsPlugin(cwd, options) {
   return require("rollup-plugin-typescript2")({
     clean: true,
-    tsconfig: path.join(root, "lezer/tsconfig.json"),
+    tsconfig: path.join(cwd, "tsconfig.json"),
     tsconfigOverride: {
       references: [],
       compilerOptions: {...baseCompilerOptions, ...options},
@@ -92,30 +93,36 @@ function tsPlugin(options) {
   })
 }
 
-const packages = [
-  new Pkg("common"),
-  new Pkg("lr"),
-  new Pkg("generator", {node: true}),
-  new Pkg("javascript", {grammar: true}),
-  new Pkg("css", {grammar: true}),
-  new Pkg("html", {grammar: true}),
-  new Pkg("xml", {grammar: true}),
-  new Pkg("cpp", {grammar: true}),
-  new Pkg("java", {grammar: true}),
-  new Pkg("python", {grammar: true}),
-  new Pkg("json", {grammar: true}),
-  new Pkg("rust", {grammar: true}),
-  new Pkg("lezer", {grammar: true}),
-  new Pkg("php", {grammar: true}),
-  new Pkg("markdown"),
-]
-const packageNames = Object.create(null)
-for (let pkg of packages) packageNames[pkg.name] = pkg
+function loadPackages() {
+  const packages = [
+    new Pkg("common"),
+    new Pkg("lr"),
+    new Pkg("generator", {node: true}),
+    new Pkg("javascript", {grammar: true}),
+    new Pkg("css", {grammar: true}),
+    new Pkg("html", {grammar: true}),
+    new Pkg("xml", {grammar: true}),
+    new Pkg("cpp", {grammar: true}),
+    new Pkg("java", {grammar: true}),
+    new Pkg("python", {grammar: true}),
+    new Pkg("json", {grammar: true}),
+    new Pkg("rust", {grammar: true}),
+    new Pkg("lezer", {grammar: true}),
+    new Pkg("php", {grammar: true}),
+    new Pkg("markdown"),
+  ]
+  const packageNames = Object.create(null)
+  for (let pkg of packages) packageNames[pkg.name] = pkg
+  return {packages, packageNames}
+}
+
+let {packages, packageNames} = loadPackages()
 
 function start() {
   let command = process.argv[2]
   let args = process.argv.slice(3)
   let cmdFn = {
+    install,
     packages: listPackages,
     build,
     watch,
@@ -133,6 +140,7 @@ function start() {
 function help(status) {
   console.log(`Usage:
   lz packages               Emit a list of all pkg names
+  lz install [--ssh]        Clone the packages and install deps
   lz build [--force]        Build the bundle files
   lz watch                  Start a watching build
   lz release <name>         Tag a release
@@ -150,6 +158,23 @@ function error(err) {
 
 function run(cmd, args, wd = root, out = "pipe") {
   return child.execFileSync(cmd, args, {cwd: wd, encoding: "utf8", stdio: ["ignore", out, process.stderr]})
+}
+
+function install(arg = null) {
+  let base = arg == "--ssh" ? "git@github.com:lezer-parser/" : "https://github.com/lezer-parser/"
+  if (arg && arg != "--ssh") help(1)
+
+  for (let pkg of packages) {
+    if (fs.existsSync(pkg.dir)) {
+      console.warn(`Skipping cloning of ${pkg.name} (directory exists)`)
+    } else {
+      let origin = base + pkg.name + ".git"
+      run("git", ["clone", origin, pkg.dir])
+    }
+  }
+
+  console.log("Running npm install")
+  run("npm", ["install"])
 }
 
 function listPackages() {
