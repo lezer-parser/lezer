@@ -68,7 +68,7 @@ class Pkg {
         externalLiveBindings: false
       }],
       plugins: [tsPlugin(this.dir, {
-        lib: this.options.node ? ["es6", "node"] : ["es6", "scripthost"],
+        lib: ["es6", "scripthost"],
         target: "es6",
         declaration: true
       })],
@@ -96,6 +96,7 @@ function tsPlugin(cwd, options) {
 function loadPackages() {
   const packages = [
     new Pkg("common"),
+    new Pkg("highlight", {entry: "highlight"}),
     new Pkg("lr"),
     new Pkg("generator", {node: true}),
     new Pkg("javascript", {grammar: true}),
@@ -124,10 +125,7 @@ function start() {
   let cmdFn = {
     install,
     packages: listPackages,
-    build,
-    watch,
     release,
-    "release-all": releaseAll,
     "bump-deps": bumpDeps,
     run: runCmd,
     "--help": () => help(0),
@@ -141,10 +139,7 @@ function help(status) {
   console.log(`Usage:
   lz packages               Emit a list of all pkg names
   lz install [--ssh]        Clone the packages and install deps
-  lz build [--force]        Build the bundle files
-  lz watch                  Start a watching build
   lz release <name>         Tag a release
-  lz release-all            Tag a new release for all packages
   lz run [--cont] <cmd>     Run the given command in all packages
   lz notes <name>           Emit pending release notes
   lz --help`)
@@ -174,129 +169,14 @@ function install(arg = null) {
   }
 
   console.log("Running npm install")
-  run("npm", ["install"])
+  run("npm", ["install", "--ignore-scripts"])
+  ;({packages, packageNames} = loadPackages())
+  for (let pkg of packages)
+    run("npm", ["run", "prepare"], pkg.dir)
 }
 
 function listPackages() {
   console.log(packages.map(p => p.name).join("\n"))
-}
-
-async function maybeWriteFile(path, content) {
-  let buffer = Buffer.from(content)
-  let size = -1
-  try {
-    size = (await fsp.stat(path)).size
-  } catch (e) {
-    if (e.code != "ENOENT") throw e
-  }
-  if (size != buffer.length || !buffer.equals(await fsp.readFile(path)))
-    await fsp.writeFile(path, buffer)
-}
-
-async function runRollup(config) {
-  let bundle = await require("rollup").rollup(config)
-  for (let output of config.output) {
-    let result = await bundle.generate(output)
-    let dir = path.dirname(output.file)
-    await fsp.mkdir(dir, {recursive: true}).catch(() => null)
-    for (let file of result.output) {
-      let code = file.code || file.source
-      if (!/\.d\.ts/.test(file.fileName))
-        await fsp.writeFile(path.join(dir, file.fileName), code)
-      else if (output.format == "cjs") // Don't double-emit declaration files
-        await maybeWriteFile(path.join(dir, file.fileName),
-                             /\.d\.ts\.map/.test(file.fileName) ? code.replace(/"sourceRoot":""/, '"sourceRoot":"../.."') : code)
-      if (file.map)
-        await fsp.writeFile(path.join(dir, file.fileName + ".map"), file.map.toString())
-    }
-  }
-}
-
-function fileTime(path) {
-  try {
-    let stat = fs.statSync(path)
-    return stat.mtimeMs
-  } catch(e) {
-    if (e.code == "ENOENT") return -1
-    throw e
-  }
-}
-
-async function rebuild(pkg, options) {
-  if (!options.always) {
-    let time = Math.min(fileTime(pkg.cjsFile), options.esm ? fileTime(pkg.esmFile) : Infinity)
-    if (time >= 0 && !pkg.inputFiles.some(file => fileTime(file) >= time)) return
-  }
-  console.log(`Building ${pkg.name}...`)
-  let t0 = Date.now()
-  await runRollup(pkg.rollupConfig(options))
-  console.log(`Done in ${Date.now() - t0}ms`)
-}
-
-class Watcher {
-  constructor(pkgs, options) {
-    this.pkgs = pkgs
-    this.options = options
-    this.work = []
-    this.working = false
-    let self = this
-    for (let pkg of pkgs) {
-      for (let file of pkg.inputFiles) fs.watch(file, function trigger(type) {
-        self.trigger(pkg)
-        if (type == "rename") setTimeout(() => {
-          try { fs.watch(file, trigger) } catch {}
-        }, 50)
-      })
-    }
-  }
-
-  trigger(pkg) {
-    if (!this.work.includes(pkg)) {
-      this.work.push(pkg)
-      setTimeout(() => this.startWork(), 20)
-    }
-  }
-
-  startWork() {
-    if (this.working) return
-    this.working = true
-    this.run().catch(e => console.log(e.stack || String(e))).then(() => this.working = false)
-  }
-
-  async run() {
-    while (this.work.length) {
-      for (let pkg of this.pkgs) {
-        let index = this.work.indexOf(pkg)
-        if (index < 0) continue
-        this.work.splice(index, 1)
-        await rebuild(pkg, this.options)
-        break
-      }
-    }
-  }
-}
-
-async function build(...args) {
-  let filter = args.filter(a => a[0] != "-"), always = args.includes("--force")
-  if (filter.length) {
-    let targets = packages
-    for (let name of filter) {
-      let found = targets.find(t => t.name == name)
-      if (!found) throw new Error(`Unknown package ${name}`)
-      await rebuild(found, {esm: true, always})
-    }
-  } else {
-    for (let pkg of packages) await rebuild(pkg, {esm: true, always})
-  }
-}
-
-async function watch() {
-  for (let pkg of packages) {
-    try { await rebuild(pkg, {esm: false}) }
-    catch(e) { console.log(e) }
-  }
-  new Watcher(target, {esm: false})
-  console.log("Watching...")
 }
 
 function changelog(pkg, since, extra) {
@@ -366,25 +246,6 @@ function release(pkgName, ...args) {
   if (!newVersion) newVersion = bumpVersion(currentVersion, changes)
   console.log(`Creating ${pkgName} ${newVersion}`)
   doRelease(pkg, changes, newVersion)
-}
-
-function releaseAll(...args) {
-  let messages = {}
-  for (let i = 0; i < args.length; i++) {
-    let arg = args[i]
-    if (arg == "--grammar") messages.grammar = args[++i]
-    else if (arg.slice(0, 2) == "--" && packageNames[arg.slice(2)]) messages[arg.slice(2)] = args[++i]
-    else error("Invalid arguments to release-all")
-  }
-  let versions = packages.map(version)
-  let maxVersion = Math.max(...versions.map(v => +v.split(".")[1]))
-  let newVersion = `0.${maxVersion + 1}.0`
-  bumpDeps(newVersion)
-  for (let i = 0; i < packages.length; i++) {
-    let pkg = packages[i]
-    let changes = changelog(pkg, versions[i], messages[pkg.name] || (pkg.options.grammar ? messages.grammar : null))
-    doRelease(pkg, changes, newVersion)
-  }
 }
 
 function bumpDeps(version) {
