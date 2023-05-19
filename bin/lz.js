@@ -101,6 +101,7 @@ function loadPackages() {
     new Pkg("generator", {node: true}),
     new Pkg("javascript", {grammar: true}),
     new Pkg("css", {grammar: true}),
+    new Pkg("sass", {grammar: true}),
     new Pkg("html", {grammar: true}),
     new Pkg("xml", {grammar: true}),
     new Pkg("cpp", {grammar: true}),
