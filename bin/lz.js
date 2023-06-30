@@ -240,7 +240,7 @@ function release(pkgName, ...args) {
   for (let i = 0; i < args.length; i++) {
     if (args[i] == "--version") newVersion = args[++i]
     else if (args[i] == "-m") message += args[++i] + "\n\n"
-    else error("Invalid arguments to release " + i + args.join())
+    else error("Invalid arguments to release " + args.join())
   }
   let currentVersion = version(pkg)
   let changes = changelog(pkg, currentVersion, message)
