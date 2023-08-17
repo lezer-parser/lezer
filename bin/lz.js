@@ -169,11 +169,26 @@ function install(arg = null) {
     }
   }
 
+  // Horrible hack to work around npm trying to build a workspace's
+  // packages in some arbitrary order (see https://github.com/npm/rfcs/issues/548)
+  updatePackageFiles(json => json.replace(/"prepare"/, '"prepareDISABLED"'))
   console.log("Running npm install")
-  run("npm", ["install", "--ignore-scripts"])
+  try {
+    run("npm", ["install", "--ignore-scripts"])
+  } finally {
+    updatePackageFiles(json => json.replace(/"prepareDISABLED"/, '"prepare"'))
+  }
   ;({packages, packageNames} = loadPackages())
+  console.log("Building packages")
   for (let pkg of packages)
     run("npm", ["run", "prepare"], pkg.dir)
+}
+
+function updatePackageFiles(f) {
+  for (let pkg of packages) {
+    let file = path.join(pkg.dir, "package.json")
+    fs.writeFileSync(file, f(fs.readFileSync(file, "utf8")))
+  }
 }
 
 function listPackages() {
