@@ -4,7 +4,7 @@
     "common", "highlight", "lr", "generator",
     "css", "javascript", "html", "xml", "json",
     "cpp", "rust", "java", "php", "python",
-    "lezer", "markdown",
+    "lezer", "markdown", "sass",
     "website"
   ]
 }
