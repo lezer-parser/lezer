@@ -127,6 +127,7 @@ function start() {
     install,
     packages: listPackages,
     release,
+    status,
     "bump-deps": bumpDeps,
     run: runCmd,
     "--help": () => help(0),
@@ -143,6 +144,7 @@ function help(status) {
   lz release <name>         Tag a release
   lz run [--cont] <cmd>     Run the given command in all packages
   lz notes <name>           Emit pending release notes
+  lz status                 Display the git status of packages
   lz --help`)
   process.exit(status)
 }
@@ -193,6 +195,14 @@ function updatePackageFiles(f) {
 
 function listPackages() {
   console.log(packages.map(p => p.name).join("\n"))
+}
+
+function status() {
+  for (let pkg of packages) {
+    let output = run("git", ["status", "-sb"], pkg.dir)
+    if (output != "## main...origin/main\n")
+      console.log(`${pkg.name}:\n${output}`)
+  }
 }
 
 function changelog(pkg, since, extra) {
