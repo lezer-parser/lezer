@@ -107,10 +107,12 @@ function loadPackages() {
     new Pkg("cpp", {grammar: true}),
     new Pkg("java", {grammar: true}),
     new Pkg("python", {grammar: true}),
+    new Pkg("go", {grammar: true}),
     new Pkg("json", {grammar: true}),
     new Pkg("rust", {grammar: true}),
     new Pkg("lezer", {grammar: true}),
     new Pkg("php", {grammar: true}),
+    new Pkg("yaml", {grammar: true}),
     new Pkg("markdown"),
   ]
   const packageNames = Object.create(null)

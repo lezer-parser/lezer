@@ -3,8 +3,8 @@
   "workspaces": [
     "common", "highlight", "lr", "generator",
     "css", "javascript", "html", "xml", "json",
-    "cpp", "rust", "java", "php", "python",
-    "lezer", "markdown", "sass",
+    "cpp", "rust", "java", "php", "python", "go",
+    "lezer", "markdown", "sass", "yaml",
     "website"
   ]
 }
