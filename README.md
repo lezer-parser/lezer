@@ -4,11 +4,11 @@ This repository holds the bug tracker for the [Lezer parser
 system](https://lezer.codemirror.net/). The actual code is in other
 repositories:
 
- - [common](https://github.com/lezer-parser/common) for the shared
+ - [common](https://code.haverbeke.berlin/lezer/common) for the shared
    data structures.
- - [lr](https://github.com/lezer-parser/lr) for the LR parser runtime.
- - [generator](https://github.com/lezer-parser/generator) for the LR
+ - [lr](https://code.haverbeke.berlin/lezer/lr) for the LR parser runtime.
+ - [generator](https://code.haverbeke.berlin/lezer/generator) for the LR
    parser generator.
  - Individual
-   [repositories](https://github.com/orgs/lezer-parser/repositories)
+   [repositories](https://code.haverbeke.berlin/lezer)
    for the various grammars and languages.

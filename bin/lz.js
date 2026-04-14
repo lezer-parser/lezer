@@ -161,7 +161,7 @@ function run(cmd, args, wd = root, out = "pipe") {
 }
 
 function install(arg = null) {
-  let base = arg == "--ssh" ? "git@github.com:lezer-parser/" : "https://github.com/lezer-parser/"
+  let base = arg == "--ssh" ? "git@code.haverbeke.berlin:lezer/" : "https://code.haverbeke.berlin/lezer/"
   if (arg && arg != "--ssh") help(1)
 
   for (let pkg of packages) {
