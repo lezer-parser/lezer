@@ -1,3 +1,5 @@
+**This repository has moved to https://code.haverbeke.berlin/lezer/lezer**
+
 # Lezer
 
 This repository holds the bug tracker for the [Lezer parser
